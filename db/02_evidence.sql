@@ -1,7 +1,7 @@
 -- db/02_evidence.sql
 -- Owner: Yashwitha
 -- Tables: EVIDENCE_TYPE, EVIDENCE, CHAIN_OF_CUSTODY
--- Requires USERS (user_id) and CASES (case_id) to exist first.
+-- Requires USERS (user_id) and CASES (case_id) to exist first (01_core.sql).
 
 -- ---------------------------------------------------------------
 -- EVIDENCE_TYPE
@@ -78,12 +78,14 @@ CREATE TRIGGER trg_custody_append_only
     FOR EACH ROW EXECUTE FUNCTION block_custody_change();
 
 -- ---------------------------------------------------------------
--- Audit triggers (function defined in 01_core.sql by Chaithanya)
+-- Audit triggers (function defined in 01_core.sql by Chaithanya).
+-- The argument is the primary key column name, which audit_row_change()
+-- reads from TG_ARGV[0] to fill audit_logs.entity_id.
 -- ---------------------------------------------------------------
 CREATE TRIGGER trg_evidence_audit
     AFTER INSERT OR UPDATE OR DELETE ON evidence
-    FOR EACH ROW EXECUTE FUNCTION audit_row_change();
+    FOR EACH ROW EXECUTE FUNCTION audit_row_change('evidence_id');
 
 CREATE TRIGGER trg_custody_audit
     AFTER INSERT OR UPDATE OR DELETE ON chain_of_custody
-    FOR EACH ROW EXECUTE FUNCTION audit_row_change();
+    FOR EACH ROW EXECUTE FUNCTION audit_row_change('custody_id');
