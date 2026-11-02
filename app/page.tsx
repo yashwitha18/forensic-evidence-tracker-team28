@@ -1,69 +1,100 @@
-import Image from "next/image";
+
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+
+import { getSession } from "@/lib/auth";
+import LogoutButton from "./logout-button";
+
+async function DashboardContent() {
+  const session = await getSession();
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  return (
+    <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
+      <div className="mx-auto max-w-5xl">
+        <header className="flex flex-col gap-4 border-b border-zinc-800 pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-widest text-blue-400">
+              Team 28 · Digital Forensics
+            </p>
+
+            <h1 className="mt-2 text-3xl font-bold">
+              Evidence Tracking System
+            </h1>
+          </div>
+
+          <LogoutButton />
+        </header>
+
+        <section className="mt-10 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+          <p className="text-sm text-zinc-400">Signed in as</p>
+
+          <h2 className="mt-2 text-2xl font-semibold">
+            {session.name}
+          </h2>
+
+          <div className="mt-4 inline-flex rounded-full border border-blue-800 bg-blue-950 px-4 py-1 text-sm font-medium text-blue-300">
+            {session.role}
+          </div>
+
+          <p className="mt-5 text-sm text-zinc-400">
+            User ID: {session.userId}
+          </p>
+        </section>
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h3 className="font-semibold">Case Management</h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              Manage forensic cases and their status.
+            </p>
+            <p className="mt-4 text-xs text-blue-400">
+              Coming in the next development stage
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h3 className="font-semibold">Evidence Tracking</h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              Register evidence and track custody transfers.
+            </p>
+            <p className="mt-4 text-xs text-blue-400">
+              Evidence module integration pending
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h3 className="font-semibold">Investigations and Reports</h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              Manage investigations and forensic reports.
+            </p>
+            <p className="mt-4 text-xs text-blue-400">
+              Coming in a later development stage
+            </p>
+          </div>
+        </section>
+
+        <footer className="mt-10 border-t border-zinc-800 pt-5 text-xs text-zinc-500">
+          Digital Forensic Evidence Tracking and Case Management System
+        </footer>
+      </div>
+    </main>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-300">
+          Loading...
+        </main>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }
