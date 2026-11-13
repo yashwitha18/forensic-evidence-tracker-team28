@@ -6,3 +6,4 @@ db/local/
 *.log
 # TypeScript incremental build cache
 *.tsbuildinfo
+vault/
