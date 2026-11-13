@@ -71,6 +71,7 @@ export function dbError(error: unknown): NextResponse {
     code?: string;
     message?: string;
     constraint?: string;
+    httpStatus?: number;
   };
 
   switch (err?.code) {
@@ -104,11 +105,13 @@ export function dbError(error: unknown): NextResponse {
     case "22P02":
       return json({ error: "Invalid value format" }, 400);
 
-    case "P0001":
-      return json(
-        { error: err.message ?? "Rule violation" },
-        409
-      );
+    case "P0001": {
+      const allowedStatuses = [400, 403, 404, 409];
+      const status = allowedStatuses.includes(err.httpStatus ?? 0)
+        ? err.httpStatus!
+        : 409;
+      return json({ error: err.message ?? "Rule violation" }, status);
+    }
 
     default:
       console.error("Unhandled database/API error:", error);
