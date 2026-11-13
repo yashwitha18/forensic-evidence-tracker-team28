@@ -57,7 +57,11 @@ CREATE TABLE chain_of_custody (
     transfer_time  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     location       VARCHAR(150),
     remarks        TEXT,
-    CONSTRAINT chk_custody_not_self CHECK (from_user_id <> to_user_id)
+        CONSTRAINT chk_custody_not_self CHECK (from_user_id IS NULL OR from_user_id <> to_user_id),
+    CONSTRAINT chk_custody_sender_matches_action CHECK (
+        (action = 'INTAKE'   AND from_user_id IS NULL)
+     OR (action = 'TRANSFER' AND from_user_id IS NOT NULL)
+    )
 );
 
 -- Timeline query: custody rows for one evidence item, in order.
