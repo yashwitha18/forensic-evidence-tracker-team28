@@ -56,6 +56,10 @@ export default function EvidencePage() {
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Keep a reference to the form now. React clears e.currentTarget
+    // after the first await, so reading it later returns null.
+    const formEl = e.currentTarget;
+
     if (!file) {
       setMsg({ ok: false, text: "Choose a file to register" });
       return;
@@ -75,7 +79,7 @@ export default function EvidencePage() {
       });
       setForm(EMPTY_FORM);
       setFile(null);
-      e.currentTarget.reset();
+      formEl.reset();
       void load();
     } else {
       setMsg({
