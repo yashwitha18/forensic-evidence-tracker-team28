@@ -1,4 +1,3 @@
-
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -63,7 +62,7 @@ async function DashboardContent() {
               Register evidence and track custody transfers.
             </p>
             <p className="mt-4 text-xs text-blue-400">
-              Evidence module integration pending
+              <Link href="/evidence" className="underline">Open evidence</Link>
             </p>
           </div>
 
