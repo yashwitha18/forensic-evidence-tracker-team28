@@ -57,7 +57,11 @@ CREATE TABLE chain_of_custody (
     transfer_time  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     location       VARCHAR(150),
     remarks        TEXT,
-    CONSTRAINT chk_custody_not_self CHECK (from_user_id <> to_user_id)
+        CONSTRAINT chk_custody_not_self CHECK (from_user_id IS NULL OR from_user_id <> to_user_id),
+    CONSTRAINT chk_custody_sender_matches_action CHECK (
+        (action = 'INTAKE'   AND from_user_id IS NULL)
+     OR (action = 'TRANSFER' AND from_user_id IS NOT NULL)
+    )
 );
 
 -- Timeline query: custody rows for one evidence item, in order.
@@ -89,3 +93,19 @@ CREATE TRIGGER trg_evidence_audit
 CREATE TRIGGER trg_custody_audit
     AFTER INSERT OR UPDATE OR DELETE ON chain_of_custody
     FOR EACH ROW EXECUTE FUNCTION audit_row_change('custody_id');
+
+CREATE OR REPLACE FUNCTION custody_chain_intact(p_evidence_id INTEGER)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE AS $$
+    SELECT NOT EXISTS (
+        SELECT 1
+        FROM (
+            SELECT action, from_user_id,
+                   LAG(to_user_id) OVER (ORDER BY custody_id) AS prev_to
+            FROM chain_of_custody
+            WHERE evidence_id = p_evidence_id
+        ) t
+        WHERE t.action = 'TRANSFER'
+          AND t.from_user_id IS DISTINCT FROM t.prev_to
+    );
+$$;
