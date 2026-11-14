@@ -1,13 +1,14 @@
 // app/api/evidence/route.ts
 // Owner: Yashwitha
-// Intake: hash the uploaded file, store it in the vault, then insert the
+// GET: list evidence for the intake page.
+// POST: hash the uploaded file, store it in the vault, then insert the
 // evidence row and its INTAKE custody row in one transaction. The metadata
 // document goes to MongoDB with the same evidence_id.
 
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { z } from "zod";
-import { withTx } from "@/lib/db";
+import { pool, withTx } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { json, dbError } from "@/lib/http";
 import { sha256Hex } from "@/lib/hash";
@@ -22,6 +23,40 @@ const intakeSchema = z.object({
   description: z.string().max(1000).optional(),
   source: z.string().max(150).optional(),
 });
+
+// Lists evidence with case, type and current holder, plus the dropdown
+// options the intake form needs. Readable by any logged-in role.
+export async function GET(request: Request) {
+  const auth = requireRole(request, ["ADMIN", "INVESTIGATOR", "CUSTODIAN"]);
+  if (!auth.ok) return auth.res;
+
+  try {
+    const [evidence, cases, types] = await Promise.all([
+      pool.query(
+        `SELECT e.evidence_id, e.evidence_name, e.status, e.file_hash,
+                e.collection_date, c.case_no, t.type_name,
+                h.name AS holder_name
+           FROM evidence e
+           JOIN cases c         ON c.case_id = e.case_id
+           JOIN evidence_type t ON t.evidence_type_id = e.evidence_type_id
+           JOIN users h         ON h.user_id = e.current_holder_id
+          ORDER BY e.evidence_id DESC`
+      ),
+      pool.query(`SELECT case_id, case_no FROM cases ORDER BY case_no`),
+      pool.query(
+        `SELECT evidence_type_id, type_name FROM evidence_type ORDER BY type_name`
+      ),
+    ]);
+
+    return json({
+      evidence: evidence.rows,
+      cases: cases.rows,
+      types: types.rows,
+    });
+  } catch (error) {
+    return dbError(error);
+  }
+}
 
 export async function POST(request: Request) {
   const auth = requireRole(request, ["CUSTODIAN"]);
