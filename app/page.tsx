@@ -1,5 +1,6 @@
 
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth";
@@ -52,7 +53,7 @@ async function DashboardContent() {
               Manage forensic cases and their status.
             </p>
             <p className="mt-4 text-xs text-blue-400">
-              Coming in the next development stage
+              <Link href="/cases" className="underline">Open cases</Link>
             </p>
           </div>
 
@@ -72,7 +73,7 @@ async function DashboardContent() {
               Manage investigations and forensic reports.
             </p>
             <p className="mt-4 text-xs text-blue-400">
-              Coming in a later development stage
+              <Link href="/investigations" className="underline">Investigations</Link>{" · "}<Link href="/reports" className="underline">Reports</Link>{session.role === "ADMIN" && (<>{" · "}<Link href="/audit" className="underline">Audit log</Link></>)}
             </p>
           </div>
         </section>

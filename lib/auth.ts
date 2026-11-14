@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextResponse, connection } from "next/server";
 
 export type Role = "ADMIN" | "INVESTIGATOR" | "CUSTODIAN";
 
@@ -129,6 +129,7 @@ export async function clearSessionCookie(): Promise<void> {
 export async function getSession(): Promise<Session | null> {
   const cookieStore = await cookies();
 
+  await connection();
   return verifyToken(cookieStore.get(COOKIE)?.value);
 }
 
