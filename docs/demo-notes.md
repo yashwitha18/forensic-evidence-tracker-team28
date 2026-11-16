@@ -42,3 +42,24 @@ Result: `ERROR: permission denied for table chain_of_custody`.
 The privilege check runs before any row is touched, so the append-only trigger never fires. Privileges are the first layer of protection, and the trigger is the second.
 
 Note: the application connects as `postgres` in development, which bypasses these grants. In production, the app should connect with the restricted role.
+
+## DDL: constraints and referential actions
+
+Primary and foreign keys:
+- Every table has a SERIAL primary key.
+- `evidence.case_id`, `evidence.evidence_type_id`, `evidence.collected_by`, and `evidence.current_holder_id` are NOT NULL foreign keys.
+- `chain_of_custody.from_user_id` is nullable, because the INTAKE record has no sender.
+
+Referential actions:
+- All foreign keys use `ON DELETE RESTRICT`. Evidence and custody records must never disappear because a case or user was removed. `CASCADE` would silently destroy custody history.
+- `ON UPDATE` uses the default `NO ACTION`. Updating a referenced user ID is rejected, which protects the custody trail.
+
+CHECK constraints:
+- `chain_of_custody`: `from_user_id IS NULL OR from_user_id <> to_user_id` (no self-transfer).
+- `chain_of_custody`: INTAKE must have a NULL sender, and TRANSFER must have a non-NULL sender.
+- `evidence.status` is limited to COLLECTED, IN_CUSTODY, ANALYZED, RELEASED.
+
+UNIQUE constraints:
+- `evidence.file_hash` (the same content cannot be registered twice).
+
+Demonstrations: the custody-sender CHECK rejected an INTAKE with a sender, and a TRANSFER with no sender. Both errors were recorded in testing.
