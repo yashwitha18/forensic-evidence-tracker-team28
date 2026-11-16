@@ -22,3 +22,23 @@ Setup: Window 1 is the admin session (postgres), Window 2 is a second session.
 **Locking.** Window 1 transferred evidence 4 inside an open transaction, which takes a row lock through `SELECT ... FOR UPDATE` in `transfer_evidence`. Window 2 ran a second transfer of the same item and was held back until Window 1 committed. After the commit, Window 2 read the new holder (3) and completed its transfer, returning custody ID 400025. Without the lock, the second transfer could have read the stale holder and created an invalid custody chain.
 
 Final state: evidence 4 is held by user 5.
+
+## Demo: role-based privileges
+
+Two sessions: Window 1 as the admin (postgres), Window 2 as the restricted role `custodian_app`.
+
+**Privileges (Window 1, `\dp`):**
+- `evidence`: `custodian_app=rw` (SELECT and UPDATE)
+- `chain_of_custody`: `custodian_app=ar` (SELECT and INSERT only, no UPDATE or DELETE)
+
+**Blocked action (Window 2):**
+
+```sql
+UPDATE chain_of_custody SET remarks = 'x' WHERE custody_id = 1;
+```
+
+Result: `ERROR: permission denied for table chain_of_custody`.
+
+The privilege check runs before any row is touched, so the append-only trigger never fires. Privileges are the first layer of protection, and the trigger is the second.
+
+Note: the application connects as `postgres` in development, which bypasses these grants. In production, the app should connect with the restricted role.
