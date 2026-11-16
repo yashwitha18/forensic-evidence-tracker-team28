@@ -19,7 +19,7 @@ Setup: Window 1 is the admin session (postgres), Window 2 is a second session.
 
 **Atomicity and isolation.** Window 1 opened a transaction and transferred evidence 4 from user 5 to user 3 without committing. Window 2 read the same row and saw the committed holder, 5. After Window 1 committed, Window 2 saw holder 3. The uncommitted change was invisible to the other session until commit.
 
-**Locking.** Window 1 transferred evidence 4 inside an open transaction, which takes a row lock through `SELECT ... FOR UPDATE` in `transfer_evidence`. Window 2 ran a second transfer of the same item and was held back until Window 1 committed. After the commit, Window 2 read the new holder (3) and completed its transfer, returning custody ID 400025. Without the lock, the second transfer could have read the stale holder and created an invalid custody chain.
+**Locking.** Window 1 transferred evidence 4 inside an open transaction, which takes a row lock through `SELECT ... FOR UPDATE` in `transfer_evidence`. Window 2 ran a second transfer of the same item. The `FOR UPDATE` lock is designed to hold it until Window 1 commits; the wait was not timed in this demo. After the commit, Window 2 read the new holder (3) and completed its transfer, returning custody ID 400025. Without the lock, the second transfer could have read the stale holder and created an invalid custody chain.
 
 Final state: evidence 4 is held by user 5.
 
@@ -52,7 +52,7 @@ Primary and foreign keys:
 
 Referential actions:
 - All foreign keys use `ON DELETE RESTRICT`. Evidence and custody records must never disappear because a case or user was removed. `CASCADE` would silently destroy custody history.
-- `ON UPDATE` uses the default `NO ACTION`. Updating a referenced user ID is rejected, which protects the custody trail.
+- `ON UPDATE` uses the default `NO ACTION`. Updating a referenced user ID is rejected. Tested: `UPDATE users SET user_id = 99 WHERE user_id = 1` failed with a foreign key violation (`audit_logs_user_id_fkey`), and the rollback left the data unchanged.
 
 CHECK constraints:
 - `chain_of_custody`: `from_user_id IS NULL OR from_user_id <> to_user_id` (no self-transfer).
