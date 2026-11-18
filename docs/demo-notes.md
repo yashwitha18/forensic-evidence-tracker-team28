@@ -63,3 +63,7 @@ UNIQUE constraints:
 - `evidence.file_hash` (the same content cannot be registered twice).
 
 Demonstrations: the custody-sender CHECK rejected an INTAKE with a sender, and a TRANSFER with no sender. Both errors were recorded in testing.
+
+## Demo: DML inserts
+
+Five evidence rows were inserted through the intake route (`POST /api/evidence`), each with a server-computed SHA-256 hash, an INTAKE custody row, and a MongoDB metadata document: Demo laptop notes, Demo phone export, Demo payroll records, and two more. Each insert runs in one transaction, so a failure leaves no partial row.
