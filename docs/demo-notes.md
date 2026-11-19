@@ -64,6 +64,16 @@ UNIQUE constraints:
 
 Demonstrations: the custody-sender CHECK rejected an INTAKE with a sender, and a TRANSFER with no sender. Both errors were recorded in testing.
 
+<<<<<<< HEAD
 ## Demo: DML inserts
 
 Five evidence rows were inserted through the intake route (`POST /api/evidence`), each with a server-computed SHA-256 hash, an INTAKE custody row, and a MongoDB metadata document: Demo laptop notes, Demo phone export, Demo payroll records, and two more. Each insert runs in one transaction, so a failure leaves no partial row.
+=======
+## Demo: DELETE is blocked by ON DELETE RESTRICT
+
+Command (psql): `DELETE FROM evidence WHERE evidence_id = 1;`
+
+Result: `ERROR: update or delete on table "evidence" violates RESTRICT setting of foreign key constraint "chain_of_custody_evidence_id_fkey" on table "chain_of_custody". DETAIL: Key (evidence_id)=(1) is referenced from table "chain_of_custody".`
+
+This is the intended behaviour. Evidence with custody history cannot be deleted, so the chain of custody cannot be silently destroyed. The error is a feature of the design, not a fault.
+>>>>>>> af960fc (docs: add DELETE restrict demo)
