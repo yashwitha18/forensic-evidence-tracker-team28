@@ -51,8 +51,23 @@ export default function EvidencePage() {
   }, [router]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    const controller = new AbortController();
+    fetch("/api/evidence", { signal: controller.signal })
+      .then(async (res) => {
+        if (res.status === 401) { router.push("/login"); return; }
+        if (!res.ok) { setMsg({ ok: false, text: "Could not load evidence" }); return; }
+        const body = await res.json();
+        if (!controller.signal.aborted) {
+          setRows(body.evidence);
+          setCases(body.cases);
+          setTypes(body.types);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setMsg({ ok: false, text: "Could not load evidence" });
+      });
+    return () => controller.abort();
+  }, [router]);
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
