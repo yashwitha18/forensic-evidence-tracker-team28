@@ -13,6 +13,12 @@ A sequential scan reads every row, so its cost grows with table size. Adding a B
 
 Note: a low-selectivity filter such as evidence_id = 1 (one third of rows) may not benefit from an index, because the planner correctly chooses a bitmap or sequential scan.
 
+## Demo: DML inserts
+
+Five evidence rows (IDs 16 to 20) were inserted through the intake route (`POST /api/evidence`) using the `/evidence` page: Demo laptop notes, Demo phone export, Demo payroll records, Demo email export, and Demo firewall log. Each upload was hashed on the server with SHA-256, stored in the vault under its hash, and recorded with an INTAKE custody row in one transaction. The metadata document was written to MongoDB after the SQL commit.
+
+Verified with: `SELECT evidence_id, evidence_name FROM evidence WHERE evidence_name LIKE 'Demo %' ORDER BY evidence_id;` (5 rows).
+
 ## Demo: transactions, isolation, and locking
 
 Setup: Window 1 is the admin session (postgres), Window 2 is a second session.
@@ -42,6 +48,14 @@ Result: `ERROR: permission denied for table chain_of_custody`.
 The privilege check runs before any row is touched, so the append-only trigger never fires. Privileges are the first layer of protection, and the trigger is the second.
 
 Note: the application connects as `postgres` in development, which bypasses these grants. In production, the app should connect with the restricted role.
+
+## Demo: DELETE is blocked by ON DELETE RESTRICT
+
+Command (psql): `DELETE FROM evidence WHERE evidence_id = 1;`
+
+Result: `ERROR: update or delete on table "evidence" violates RESTRICT setting of foreign key constraint "chain_of_custody_evidence_id_fkey" on table "chain_of_custody". DETAIL: Key (evidence_id)=(1) is referenced from table "chain_of_custody".`
+
+This is the intended behaviour. Evidence with custody history cannot be deleted, so the chain of custody cannot be silently destroyed. The error is a feature of the design, not a fault.
 
 ## DDL: constraints and referential actions
 
