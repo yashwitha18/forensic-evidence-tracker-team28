@@ -63,11 +63,3 @@ UNIQUE constraints:
 - `evidence.file_hash` (the same content cannot be registered twice).
 
 Demonstrations: the custody-sender CHECK rejected an INTAKE with a sender, and a TRANSFER with no sender. Both errors were recorded in testing.
-
-## Demo: DELETE is blocked by ON DELETE RESTRICT
-
-Command (psql): `DELETE FROM evidence WHERE evidence_id = 1;`
-
-Result: `ERROR: update or delete on table "evidence" violates RESTRICT setting of foreign key constraint "chain_of_custody_evidence_id_fkey" on table "chain_of_custody". DETAIL: Key (evidence_id)=(1) is referenced from table "chain_of_custody".`
-
-This is the intended behaviour. Evidence with custody history cannot be deleted, so the chain of custody cannot be silently destroyed. The error is a feature of the design, not a fault.
