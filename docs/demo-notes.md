@@ -77,3 +77,19 @@ UNIQUE constraints:
 - `evidence.file_hash` (the same content cannot be registered twice).
 
 Demonstrations: the custody-sender CHECK rejected an INTAKE with a sender, and a TRANSFER with no sender. Both errors were recorded in testing.
+
+## Queries: what they answer and how they work
+
+**Q1. Four-table JOIN (evidence with case, type, collector and holder).** Answers "for each evidence item, which case is it in, what kind is it, who collected it and who holds it now?" It joins `evidence` to `cases`, `evidence_type`, and `users` twice, once for the collector and once for the holder, using the foreign keys. The two joins to `users` use aliases (`collector`, `holder`) because the same table appears twice. It matters for forensics because it shows the full ownership picture of each item in one result.
+
+**Q2. GROUP BY with HAVING (holders with more than one item).** Answers "which users are currently responsible for more than one evidence item?" The query joins evidence to its current holder, groups by holder name, counts items per group, and keeps only groups where `COUNT(*) > 1`. `WHERE` filters rows before grouping, while `HAVING` filters the groups after counting, which is why the count condition belongs in `HAVING`. On the seed data it returns one row, Divya Custodian with 2 items.
+
+**Q7. Holder-chain check (correlated subquery).** Answers "does the stored current holder match the most recent custody record?" For each evidence item, a correlated subquery finds the latest custody row, ordered by `transfer_time` and then `custody_id` as a tie-breaker, and takes its `to_user_id`. The outer query returns any evidence where that value differs from `current_holder_id`. It should return zero rows, and it does. It matters because it verifies the denormalised holder column against the custody trail using only the data, with no application code involved.
+
+## Triggers, procedures and functions
+
+**Trigger: `block_custody_change` (append-only custody).** Fires before any UPDATE or DELETE on `chain_of_custody` and raises an exception naming the operation. This is specific to the project: a custody record is evidence of who held an item and when, so altering or removing it would undermine the case. The trigger enforces that rule in the database, so it applies to every client, not only the web app. Demonstrated: an UPDATE and a DELETE on custody row 1 were both rejected with "chain_of_custody is append-only".
+
+**Procedure: `transfer_evidence` (transactional transfer).** Runs one transfer as a single unit. It locks the evidence row with `SELECT ... FOR UPDATE`, checks the item exists and that the actor is the current holder, inserts a TRANSFER custody row with `from_user_id` set to the current holder, and updates `current_holder_id` and status. Because the whole sequence runs in one transaction, either all of these changes happen or none do. In PostgreSQL this is implemented as a function that returns the new custody ID. Demonstrated: a valid transfer returned a custody ID, and a transfer by a non-holder or of a missing item raised an error and changed nothing.
+
+**Function: `custody_chain_intact(evidence_id)`.** Returns true if every TRANSFER in an item's custody history starts from the previous recipient. It uses `LAG` over the custody rows in order to compare each sender with the prior recipient, and returns false if any link is broken. It is the database-side check that the chain of custody is continuous. Demonstrated: it returned true on valid data, and false after a deliberately inserted transfer from the wrong user, which was then rolled back.
