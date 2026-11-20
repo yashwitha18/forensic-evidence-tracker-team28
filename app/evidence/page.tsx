@@ -33,6 +33,9 @@ export default function EvidencePage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [file, setFile] = useState<File | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [transfer, setTransfer] = useState({ evidenceId: "", toUserId: "", location: "", remarks: "" });
+  const [transferMsg, setTransferMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [transferring, setTransferring] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/evidence");
@@ -104,6 +107,30 @@ export default function EvidencePage() {
     }
   }
 
+  async function submitTransfer(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setTransferring(true);
+    setTransferMsg(null);
+    try {
+      const res = await fetch("/api/custody/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ evidenceId: Number(transfer.evidenceId), toUserId: Number(transfer.toUserId), location: transfer.location, remarks: transfer.remarks }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setTransferMsg({ ok: false, text: body.error ?? "Transfer failed" });
+        return;
+      }
+      setTransferMsg({ ok: true, text: `Transfer recorded (custody #${body.custodyId}).` });
+      setTransfer({ evidenceId: "", toUserId: "", location: "", remarks: "" });
+      await load();
+    } catch {
+      setTransferMsg({ ok: false, text: "Could not complete transfer. Check the connection and try again." });
+    } finally {
+      setTransferring(false);
+    }
+  }
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
       <div className="mx-auto max-w-6xl space-y-8">
@@ -210,6 +237,29 @@ export default function EvidencePage() {
           </form>
         </section>
 
+        <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+          <h2 className="mb-2 text-lg font-semibold">Transfer custody</h2>
+          <p className="mb-4 text-sm text-zinc-400">Only the current holder can transfer evidence. Enter the recipient&apos;s user ID.</p>
+          {transferMsg && <p role="status" className={`mb-4 rounded border p-3 text-sm ${transferMsg.ok ? "border-green-800 text-green-300" : "border-red-800 text-red-300"}`}>{transferMsg.text}</p>}
+          <form onSubmit={submitTransfer} className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-1 text-sm">Evidence
+              <select required value={transfer.evidenceId} onChange={e => setTransfer({ ...transfer, evidenceId: e.target.value })} className="rounded-md border border-zinc-700 bg-zinc-950 p-2">
+                <option value="">Select evidence</option>
+                {rows.map(row => <option key={row.evidence_id} value={row.evidence_id}>#{row.evidence_id} - {row.evidence_name} (holder: {row.holder_name})</option>)}
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm">Recipient user ID
+              <input required type="number" min="1" step="1" value={transfer.toUserId} onChange={e => setTransfer({ ...transfer, toUserId: e.target.value })} className="rounded-md border border-zinc-700 bg-zinc-950 p-2" />
+            </label>
+            <label className="grid gap-1 text-sm">Location (optional)
+              <input maxLength={150} value={transfer.location} onChange={e => setTransfer({ ...transfer, location: e.target.value })} className="rounded-md border border-zinc-700 bg-zinc-950 p-2" />
+            </label>
+            <label className="grid gap-1 text-sm">Remarks (optional)
+              <input maxLength={1000} value={transfer.remarks} onChange={e => setTransfer({ ...transfer, remarks: e.target.value })} className="rounded-md border border-zinc-700 bg-zinc-950 p-2" />
+            </label>
+            <button disabled={transferring} className="rounded-md bg-blue-600 px-4 py-2 font-medium hover:bg-blue-500 disabled:opacity-50">{transferring ? "Transferring..." : "Transfer custody"}</button>
+          </form>
+        </section>
         <section className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-zinc-800 text-zinc-400">
